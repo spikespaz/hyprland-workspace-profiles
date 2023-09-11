@@ -1,5 +1,5 @@
 pub mod config;
 
 fn main() {
-    println!("Hello, world!");
+    println!("{}", config::MonitorSettings::default().to_keyword_string("eDP-1"));
 }

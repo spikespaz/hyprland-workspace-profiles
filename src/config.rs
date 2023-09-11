@@ -56,3 +56,76 @@ pub enum MonitorVrrMode {
     On = 1,
     Fullscreen = 2,
 }
+
+impl Default for MonitorSettings {
+    fn default() -> Self {
+        Self {
+            resolution: MonitorResolution::Preferred,
+            position: MonitorPosition::Automatic,
+            transform: MonitorTransform::Normal,
+            scale: 1.0,
+            bit_depth: 8,
+            vrr: MonitorVrrMode::Default,
+            mirror: None,
+        }
+    }
+}
+
+impl MonitorSettings {
+    pub fn to_keyword_string<N: AsRef<str>>(&self, name: N) -> String {
+        use std::fmt::Write;
+
+        let mut buf = String::new();
+
+        write!(buf, "{}", name.as_ref()).unwrap();
+
+        buf.push(',');
+        use MonitorResolution as Mr;
+        match &self.resolution {
+            Mr::Preferred => write!(buf, "preferred"),
+            Mr::Manual {
+                width,
+                height,
+                refresh: None,
+            } => write!(buf, "{width}x{height}"),
+            Mr::Manual {
+                width,
+                height,
+                refresh: Some(refresh),
+            } => write!(buf, "{width}x{height}@{refresh}"),
+            Mr::HighResolution => write!(buf, "highres"),
+            Mr::HighRefresh => write!(buf, "highrr"),
+            Mr::Modeline(modeline) => write!(buf, "modeline {modeline}"),
+        }
+        .unwrap();
+
+        buf.push(',');
+        use MonitorPosition as Mp;
+        match &self.position {
+            Mp::Automatic => write!(buf, "auto"),
+            Mp::Manual { x, y } => write!(buf, "{x}x{y}"),
+        }
+        .unwrap();
+
+        buf.push(',');
+        write!(buf, "{}", self.scale).unwrap();
+
+        buf.push(',');
+        write!(buf, "transform,{}", self.transform as u32).unwrap();
+
+        buf.push(',');
+        write!(buf, "bitdepth,{}", self.bit_depth).unwrap();
+
+        if self.vrr != MonitorVrrMode::Default {
+            buf.push(',');
+            write!(buf, "vrr,{}", self.vrr as u32).unwrap();
+        }
+
+        if let Some(name) = &self.mirror {
+            buf.push(',');
+            write!(buf, "mirror,{}", name).unwrap()
+        }
+
+        buf
+    }
+}
