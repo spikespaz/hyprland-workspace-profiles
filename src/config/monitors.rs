@@ -1,13 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-pub struct MonitorIdentifier {
-    pub make: String,
-    pub model: String,
-    pub serial: String,
-}
-
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct MonitorSettings {
     pub resolution: MonitorResolution,
     pub position: MonitorPosition,
