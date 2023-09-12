@@ -22,7 +22,12 @@
           default = pkgs.mkShell {
             strictDeps = true;
             packages = with pkgs; [
-              rust-bin.stable.latest.default
+              (rust-bin.stable.latest.minimal.override {
+                extensions = [ "rust-docs" ];
+              })
+              (lib.hiPrio rust-bin.nightly.latest.clippy)
+              (lib.hiPrio rust-bin.nightly.latest.rustfmt)
+              (lib.hiPrio rust-bin.nightly.latest.rust-analyzer)
               pkg-config
               openssl
             ];
