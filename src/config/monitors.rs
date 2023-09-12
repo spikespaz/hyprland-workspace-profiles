@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
@@ -21,7 +23,51 @@ pub enum MonitorResolution {
     },
     HighResolution,
     HighRefresh,
-    Modeline(String),
+    Modeline(MonitorMode),
+}
+
+/// Copied from Mesa's [`xf86drmMode.h#L90-100`] and
+/// cross-referenced with Hyprland's [`ConfigManager.cpp#L530-L538`].
+///
+/// For a high-level overview, see Wikipedia:
+/// <https://en.wikipedia.org/wiki/XFree86_Modeline>
+///
+/// There is also a calculator (and explanation) by Paul Lutus:
+/// <https://arachnoid.com/modelines/>
+///
+/// [`xf86drmMode.h#L90-100`]: https://gitlab.freedesktop.org/mesa/drm/-/blob/8d0fb9b3f225183fb3276a0e4ae1f8354a3519e8/xf86drmMode.h#L90-100
+/// [`ConfigManager.cpp#L530-L538`]: https://github.com/hyprwm/Hyprland/blob/ed51fe7bac76248933c71d3958fdb9a973066dfd/src/config/ConfigManager.cpp#L530-L538
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct MonitorMode {
+    pub clock: f32,
+    pub hdisplay: u16,
+    pub hsync_start: u16,
+    pub hsync_end: u16,
+    pub htotal: u16,
+    pub vdisplay: u16,
+    pub vsync_start: u16,
+    pub vsync_end: u16,
+    pub vtotal: u16,
+    pub flags: Vec<MonitorModeFlag>,
+}
+
+/// Copied from Mesa's [`drm_mode.h#L71-84`] and
+/// cross-referenced with Hyprland's [`ConfigManager.cpp#L542-L545`].
+///
+/// [`drm_mode.h#L71-84`]: https://gitlab.freedesktop.org/mesa/drm/-/blob/8d0fb9b3f225183fb3276a0e4ae1f8354a3519e8/include/drm/drm_mode.h#L71-84
+/// [`ConfigManager.cpp#L542-L545`]: https://github.com/hyprwm/Hyprland/blob/ed51fe7bac76248933c71d3958fdb9a973066dfd/src/config/ConfigManager.cpp#L542-L545
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MonitorModeFlag {
+    PHSync,
+    NHSync,
+    PVSync,
+    NVSync,
+    // Hyprland doesn't support the following flags.
+    // Interlace,
+    // DoubleScan,
+    // CSync,
+    // PCSync,
+    // NCSync,
 }
 
 #[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
@@ -88,7 +134,7 @@ impl MonitorSettings {
             } => write!(buf, "{width}x{height}@{refresh}"),
             Mr::HighResolution => write!(buf, "highres"),
             Mr::HighRefresh => write!(buf, "highrr"),
-            Mr::Modeline(modeline) => write!(buf, "modeline {modeline}"),
+            Mr::Modeline(mode) => write!(buf, "modeline {}", mode.to_string()),
         }
         .unwrap();
 
@@ -120,5 +166,46 @@ impl MonitorSettings {
         }
 
         buf
+    }
+}
+
+// Not `Display` because that may warrant a different representation.
+impl ToString for MonitorMode {
+    fn to_string(&self) -> String {
+        use std::fmt::Write;
+
+        let mut buf = String::new();
+
+        write!(
+            buf,
+            "{} {} {} {} {} {} {} {} {}",
+            self.clock,
+            self.hdisplay,
+            self.hsync_start,
+            self.hsync_end,
+            self.htotal,
+            self.vdisplay,
+            self.vsync_start,
+            self.vsync_end,
+            self.vtotal,
+        )
+        .unwrap();
+
+        for flag in &self.flags {
+            write!(buf, " {}", flag).unwrap();
+        }
+
+        buf
+    }
+}
+
+impl fmt::Display for MonitorModeFlag {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::PHSync => formatter.write_str("+hsync"),
+            Self::NHSync => formatter.write_str("-hsync"),
+            Self::PVSync => formatter.write_str("+vsync"),
+            Self::NVSync => formatter.write_str("-vsync"),
+        }
     }
 }
